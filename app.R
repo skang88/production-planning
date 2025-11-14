@@ -1108,13 +1108,12 @@ observeEvent(input$plan_handsontable, {
     edited_data <- hot_to_r(input$aggregated_plan_table)
     
     # Convert wide data back to long format for saving
-    long_data <- edited_data %>%
-      tidyr::pivot_longer(
-        cols = -c(품번, 품명),
-        names_to = "delivery_date_str",
-        values_to = "quantity"
-      )
-      
+          long_data <- edited_data %>%
+            tidyr::pivot_longer(
+              cols = -c(차종, 품번, 품명),
+              names_to = "delivery_date_str",
+              values_to = "quantity"
+            )      
     # Save to DB
     for (row in 1:nrow(long_data)) {
       material_code <- trimws(long_data$품번[row])
