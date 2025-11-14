@@ -930,7 +930,7 @@ observeEvent(input$plan_handsontable, {
       sort()
       
     if(length(dates_with_any_req) == 0) {
-      return(tibble(품번 = "향후 15일간 소요량이 있는 날짜가 없습니다.", 품명 = ""))
+      return(tibble(차종 = character(0), 품번 = "향후 15일간 소요량이 있는 날짜가 없습니다.", 품명 = ""))
     }
 
     # 2. Get valid items from master list
