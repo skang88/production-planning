@@ -72,7 +72,7 @@ ui <- fluidPage(
                         )
                       ),
                       uiOutput("data_timestamps"),
-                      actionButton("auto_fill_all_materials", "모든 품번 대상 납품계획 자동 생성", class = "btn-warning", style = "margin-top: 10px; width = 100%;")
+
                ),
                column(10, # Expanded width from 9 to 10
                       h4("예상 재고 추이 그래프"),
@@ -631,120 +631,7 @@ observeEvent(input$plan_handsontable, {
     showNotification("납품 계획이 자동 생성되었습니다. 내용을 확인하고 저장하세요.", type = "message")
   })
   
-  # 모든 품번 대상 납품계획 자동 생성
-  observeEvent(input$auto_fill_all_materials, {
-    req(material_list_rv(), db_data$daily_requirements, db_data$customer_stock, db_data$pallet_qty)
-    
-    all_materials <- material_list_rv()
-    all_generated_plans <- list() # 모든 품번의 생성된 계획을 저장할 리스트
-    
-    withProgress(message = '모든 품번 납품 계획 자동 생성 중...', value = 0, {
-      for (k in 1:length(all_materials)) {
-        material_code <- all_materials[k]
-        incProgress(1/length(all_materials), detail = paste("품번:", material_code))
-        
-        # 1. 필요한 데이터 가져오기 (각 품번별로)
-        # 안전 재고 계산 (safety_stock_ea() 로직 재사용)
-        # 이 부분은 safety_stock_ea() reactive를 직접 호출할 수 없으므로 로직을 복사하거나 함수화해야 함
-        future_req_10_days <- db_data$daily_requirements %>%
-            mutate(requirement_date = as.Date(requirement_date)) %>%
-            filter(
-                material_number == material_code,
-                requirement_date >= Sys.Date(),
-                requirement_date <= Sys.Date() + 9
-            )
-        total_req_10_days <- sum(future_req_10_days$requirement_value, na.rm = TRUE)
-        num_production_days <- future_req_10_days %>%
-          filter(requirement_value > 0) %>%
-          distinct(requirement_date) %>%
-          nrow()
-        avg_daily_req <- if (num_production_days > 0) {
-          total_req_10_days / num_production_days
-        } else {
-          0
-        }
-        
-        pallet_info <- db_data$pallet_qty %>% 
-          mutate(ITMNO = trimws(ITMNO)) %>% 
-          filter(ITMNO == material_code)
-        pallet_qty_per_unit <- if (nrow(pallet_info) > 0 && pallet_info$PLT_QTY[1] > 0) pallet_info$PLT_QTY[1] else 1
-        
-        safety_stock <- ceiling(avg_daily_req / pallet_qty_per_unit) * pallet_qty_per_unit
-        
-        # 초기 재고 (D-1 재고)
-        # D+0의 기초재고는 DB에서 가져온 최신 재고값(DB초기재고)을 직접 사용
-        sim_data_for_material <- simulation_data() %>% filter(품번 == material_code)
-        initial_stock <- if (nrow(sim_data_for_material) > 0) sim_data_for_material$DB초기재고[1] else 0
-        initial_stock <- as.numeric(initial_stock[1]); if (is.na(initial_stock)) initial_stock <- 0
-        
-        # 2. 자동 계획 로직 (전체 D+0 ~ D+14 기간에 대해 계산)
-        full_sim_data_for_material_period <- sim_data_for_material %>%
-          filter(소요날짜 >= Sys.Date(), 소요날짜 <= Sys.Date() + 14) %>%
-          arrange(소요날짜)
 
-        full_req_ea_vec <- full_sim_data_for_material_period$일일소요량
-        full_new_plan_ea_vec <- numeric(length(full_req_ea_vec))
-        full_projected_stock_vec <- numeric(length(full_req_ea_vec))
-
-        # D+0 (오늘) 납품은 자동 입력에서 제외
-        stock_before_today_d0 <- initial_stock
-        full_projected_stock_vec[1] <- stock_before_today_d0 - full_req_ea_vec[1]
-        full_new_plan_ea_vec[1] <- 0
-
-        # D+1부터 D+14까지 자동 계획 로직 적용
-        for (i in 2:length(full_req_ea_vec)) {
-          stock_before_today <- full_projected_stock_vec[i-1]
-          stock_today_no_delivery <- stock_before_today - full_req_ea_vec[i]
-          
-          if (full_req_ea_vec[i] == 0) {
-            full_new_plan_ea_vec[i] <- 0
-          } else {
-            if (stock_today_no_delivery < safety_stock) {
-              deficit <- safety_stock - stock_today_no_delivery
-              pallets_to_add <- ceiling(deficit / pallet_qty_per_unit)
-              qty_to_add <- pallets_to_add * pallet_qty_per_unit
-              full_new_plan_ea_vec[i] <- qty_to_add
-            } else {
-              full_new_plan_ea_vec[i] <- 0
-            }
-          }
-          full_projected_stock_vec[i] <- stock_before_today + full_new_plan_ea_vec[i] - full_req_ea_vec[i]
-        }
-        
-        # 생성된 계획을 리스트에 추가
-        generated_plan_df <- tibble(
-          material = material_code,
-          delivery_date = full_sim_data_for_material_period$소요날짜,
-          quantity = full_new_plan_ea_vec
-        )
-        all_generated_plans[[k]] <- generated_plan_df
-      }
-    })
-    
-    # 모든 품번의 계획을 하나의 데이터프레임으로 결합
-    final_plans_to_save <- bind_rows(all_generated_plans) %>%
-      filter(quantity > 0) # 0인 계획은 저장하지 않음 (DB에 0으로 업데이트하는 대신)
-    
-    # DB에 저장 (기존 계획 삭제 후 새로 삽입)
-    mysql_con <- dbConnect(MySQL(), user="seokgyun", password="1q2w3e4r", dbname="GSCP", host="172.16.220.32", port=3306)
-    on.exit(dbDisconnect(mysql_con))
-    
-    # 기존 D+0 ~ D+14 기간의 계획 삭제
-    dbExecute(mysql_con, sprintf(
-      "DELETE FROM delivery_plans WHERE delivery_date >= %s AND delivery_date <= %s",
-      dbQuoteString(mysql_con, as.character(Sys.Date())),
-      dbQuoteString(mysql_con, as.character(Sys.Date() + 14))
-    ))
-    
-    if (nrow(final_plans_to_save) > 0) {
-      dbWriteTable(mysql_con, "delivery_plans", final_plans_to_save, append = TRUE, row.names = FALSE)
-    }
-    
-    showNotification("모든 품번의 납품 계획이 자동 생성 및 저장되었습니다.", type = "message", duration = 5)
-    
-    # DB에서 데이터 다시 로드하여 전체 앱에 반영
-    db_data$delivery_plans <- dbGetQuery(mysql_con, "SELECT material, delivery_date, quantity FROM delivery_plans")
-  })
   
   # 2.6 납품 계획 저장
   observeEvent(input$save_plan, {
