@@ -3,9 +3,7 @@ pipeline {
     // Jenkins 에이전트에 Docker가 설치되어 있다고 가정합니다.
     agent any
 
-    environment {
 
-    }
 
     stages {
         stage('Checkout') {
@@ -59,9 +57,5 @@ pipeline {
         }
     }
     
-    post {
-        always {
-            // 빌드 후 정리 작업
-        }
-    }
+
 }
