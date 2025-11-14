@@ -1057,9 +1057,24 @@ observeEvent(input$plan_handsontable, {
       return(rhandsontable(tibble("표시할 데이터가 없습니다.")))
     }
 
+    # 날짜 그룹별로 배경색을 교차 적용하는 JavaScript 렌더러
+    renderer <- "
+      function(instance, td, row, col, prop, value, cellProperties) {
+        Handsontable.renderers.TextRenderer.apply(this, arguments);
+        if (col > 0) { // 첫 번째 열('품번')은 색상을 적용하지 않음
+          // 날짜 그룹(3개 열)별로 색상을 교차 적용
+          if (Math.floor((col - 1) / 3) % 2 === 0) {
+            td.style.background = '#FFF8DC'; // 노란색 계열
+          } else {
+            td.style.background = '#f9f9f9'; // 연한 회색
+          }
+        }
+      }
+    "
+
     hot_table <- rhandsontable(df, stretchH = "all", rowHeader = FALSE) %>%
       hot_col(1, width = 150) %>% # 품번 컬럼 너비 확장
-      hot_cols(readOnly = TRUE) %>%
+      hot_cols(readOnly = TRUE, renderer = renderer) %>% # 모든 열에 렌더러 적용
       hot_cols(format = "0")
       
     # 날짜 그룹별로 오른쪽 테두리 추가
