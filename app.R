@@ -115,8 +115,13 @@ server <- function(input, output, session) {
   
   # 앱 시작 시 데이터 로드
   tryCatch({
-    # 1.1 MySQL 연결 및 데이터 로드
-    mysql_con <- dbConnect(MySQL(), user="seokgyun", password="1q2w3e4r", dbname="GSCP", host="172.16.220.32", port=3306)
+    mysql_con <- dbConnect(MySQL(), 
+      user=Sys.getenv("MYSQL_USER", "seokgyun"), 
+      password=Sys.getenv("MYSQL_PWD", "1q2w3e4r"), 
+      dbname=Sys.getenv("MYSQL_DBNAME", "GSCP"), 
+      host=Sys.getenv("MYSQL_HOST", "172.16.220.32"), 
+      port=as.integer(Sys.getenv("MYSQL_PORT", 3306))
+    )
     session$onSessionEnded(function() { dbDisconnect(mysql_con) })
     
     # 'delivery_plans' 테이블 자동 생성
@@ -140,7 +145,14 @@ server <- function(input, output, session) {
     db_data$delivery_plans <- dbGetQuery(mysql_con, "SELECT material, delivery_date, quantity FROM delivery_plans")
     
     # 1.2 MS SQL Server 연결 및 데이터 로드
-    mssql_con <- dbConnect(odbc(), .connection_string = "Driver={ODBC Driver 17 for SQL Server};Server=172.16.220.3;Database=SAG;Uid=seokgyun;Pwd=1q2w3e4r;")
+    mssql_con_string <- sprintf(
+      "Driver={ODBC Driver 17 for SQL Server};Server=%s;Database=%s;Uid=%s;Pwd=%s;",
+      Sys.getenv("MSSQL_HOST", "172.16.220.3"),
+      Sys.getenv("MSSQL_DBNAME", "SAG"),
+      Sys.getenv("MSSQL_USER", "seokgyun"),
+      Sys.getenv("MSSQL_PWD", "1q2w3e4r")
+    )
+    mssql_con <- dbConnect(odbc(), .connection_string = mssql_con_string)
     session$onSessionEnded(function() { dbDisconnect(mssql_con) })
     
     db_data$our_stock <- dbGetQuery(mssql_con, "SELECT ITMNO, SUM(JQTY) AS RackStock FROM SAG.dbo.MAT_ITMBLPFSUB WHERE WARHS = 'AA' AND JQTY > 0 GROUP BY ITMNO")
