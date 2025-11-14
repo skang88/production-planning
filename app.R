@@ -536,7 +536,7 @@ observeEvent(input$plan_handsontable, {
         
         // 열 인덱스(col)가 홀수일 때 배경색을 연하게 칠합니다.
         if (col % 2 !== 0) {
-          td.style.background = '#f9f9f9';
+          td.style.background = '#FFF8DC'; // 연한 노란색 (Cornsilk)
         }
 
         // 4번째 행(0-indexed, row=3)인 '납품계획 (Pallet)'은 항상 다른 색으로 덮어씌웁니다.
