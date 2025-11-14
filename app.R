@@ -529,11 +529,18 @@ observeEvent(input$plan_handsontable, {
     cols_to_hide <- which(daily_req_row == 0)
     cols_to_hide <- setdiff(cols_to_hide, 1) # 1번 컬럼(D+0)은 숨기지 않음
     
-    # 입력 행을 하이라이트하기 위한 JavaScript 렌더러
+    # 입력 행 하이라이트 및 열 배경색 교차 적용을 위한 JavaScript 렌더러
     renderer <- "
       function(instance, td, row, col, prop, value, cellProperties) {
         Handsontable.renderers.NumericRenderer.apply(this, arguments);
-        if (row == 3) { // 0-indexed, so 4th row is index 3
+        
+        // 열 인덱스(col)가 홀수일 때 배경색을 연하게 칠합니다.
+        if (col % 2 !== 0) {
+          td.style.background = '#f9f9f9';
+        }
+
+        // 4번째 행(0-indexed, row=3)인 '납품계획 (Pallet)'은 항상 다른 색으로 덮어씌웁니다.
+        if (row == 3) { 
           td.style.background = '#F0F8FF';
           td.style.fontWeight = 'bold';
         }
