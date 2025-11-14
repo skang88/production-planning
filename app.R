@@ -973,8 +973,9 @@ observeEvent(input$plan_handsontable, {
         left_join(item_descriptions, by = "품번") %>%
         mutate(품명 = ifelse(is.na(품명), "", 품명)) %>%
         left_join(valid_items %>% select(품번, CHJ_CD), by = "품번") %>%
+        mutate(차종 = ifelse(CHJ_CD == 'A01', 'NEa', 'MEa')) %>%
         arrange(CHJ_CD, 품번) %>%
-        select(품번, 품명, everything()) %>% # 컬럼 순서 재정렬
+        select(차종, 품번, 품명, everything()) %>% # 컬럼 순서 재정렬
         select(-CHJ_CD)
 
     # 7. Format column names
@@ -1079,10 +1080,25 @@ observeEvent(input$plan_handsontable, {
   # 4.3 종합 납품 계획 테이블 렌더링
   output$aggregated_plan_table <- renderRHandsontable({
     req(aggregated_plan_data())
+    
+    # 차종에 따라 행 색상을 변경하는 JavaScript 렌더러
+    renderer <- "
+      function(instance, td, row, col, prop, value, cellProperties) {
+        Handsontable.renderers.TextRenderer.apply(this, arguments);
+        var car_model = instance.getDataAtRowProp(row, '차종');
+        if (car_model === 'MEa') {
+          td.style.background = '#f2f2f2'; // 연한 회색
+        } else if (car_model === 'NEa') {
+          td.style.background = '#e6f7ff'; // 연한 하늘색
+        }
+      }
+    "
+    
     rhandsontable(aggregated_plan_data(), readOnly = FALSE, rowHeader = FALSE, stretchH = "all") %>%
-      hot_col(1, readOnly = TRUE, width = 80) %>% # 품번 열 너비 조정
-      hot_col(2, readOnly = TRUE, width = 150) %>% # 품명 열 너비 조정
-      hot_cols(format = "0")
+      hot_col("차종", width = 0.1) %>% # 차종 열 숨기기
+      hot_col("품번", readOnly = TRUE, width = 80) %>%
+      hot_col("품명", readOnly = TRUE, width = 150) %>%
+      hot_cols(renderer = renderer, format = "0")
   })
   
   # 4.3 종합 납품 계획 저장
