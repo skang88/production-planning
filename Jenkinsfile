@@ -4,10 +4,6 @@ pipeline {
     agent any
 
     environment {
-        // Docker Hub 사용자 이름 또는 레지스트리 주소를 설정합니다.
-        DOCKER_REGISTRY = 'your-docker-registry' 
-        // Docker Hub 또는 프라이빗 레지스트리의 Credential ID를 설정합니다.
-        DOCKER_CREDENTIALS_ID = 'your-docker-credentials-id'
         // 배포 서버의 SSH Credential ID를 설정합니다.
         DEPLOY_SERVER_CREDENTIALS_ID = 'your-deploy-server-credentials'
         // 배포 서버의 주소와 사용자 이름을 설정합니다.
@@ -29,17 +25,7 @@ pipeline {
             }
         }
 
-        stage('Push to Docker Registry') {
-            steps {
-                // Jenkins Credential을 사용하여 Docker 레지스트리에 로그인하고 이미지를 푸시합니다.
-                // 이 단계는 Docker 레지스트리를 사용할 경우에만 필요합니다.
-                withCredentials([string(credentialsId: DOCKER_CREDENTIALS_ID, variable: 'DOCKER_PASSWORD')]) {
-                    sh "echo ${env.DOCKER_PASSWORD} | docker login ${env.DOCKER_REGISTRY} -u your-docker-username --password-stdin"
-                    sh "docker tag production-planning-app:latest ${env.DOCKER_REGISTRY}/production-planning-app:latest"
-                    sh "docker push ${env.DOCKER_REGISTRY}/production-planning-app:latest"
-                }
-            }
-        }
+
 
         stage('Deploy') {
             steps {
@@ -62,8 +48,7 @@ ${SSH_KEY} ${env.DEPLOY_SERVER} << 'EOF'
                                 docker stop production-planning-app || true
                                 docker rm production-planning-app || true
 
-                                # Docker 레지스트리에서 최신 이미지를 가져옵니다.
-                                docker pull ${env.DOCKER_REGISTRY}/production-planning-app:latest
+
 
                                 # 환경 변수를 주입하여 새 컨테이너를 실행합니다.
                                 docker run -d --name production-planning-app -p 3838:3838 \
@@ -73,7 +58,7 @@ ${SSH_KEY} ${env.DEPLOY_SERVER} << 'EOF'
                                     -e MSSQL_HOST="\\${MSSQL_HOST_VAR}" \
                                     -e MSSQL_USER="\\${MSSQL_USER_VAR}" \
                                     -e MSSQL_PWD="\\${MSSQL_PWD_VAR}" \
-                                    ${env.DOCKER_REGISTRY}/production-planning-app:latest
+                                    production-planning-app:latest
                             EOF
                         """
                     }
@@ -84,8 +69,7 @@ ${SSH_KEY} ${env.DEPLOY_SERVER} << 'EOF'
     
     post {
         always {
-            // 빌드 후 정리 작업 (예: Docker 로그아웃)
-            sh 'docker logout'
+            // 빌드 후 정리 작업
         }
     }
 }
