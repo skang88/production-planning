@@ -646,6 +646,7 @@ observeEvent(input$plan_handsontable, {
       day_offset <- i - 1
       delivery_date <- Sys.Date() + day_offset
       quantity_to_save <- as.numeric(plan_to_save_ea[[i]])
+      quantity_to_save <- ifelse(is.na(quantity_to_save), 0, quantity_to_save)
       
       # 수량이 0 이상일 때만 DB에 저장/업데이트 (0이면 삭제도 고려할 수 있으나, 여기서는 0으로 업데이트)
       query <- sprintf(
@@ -1010,6 +1011,7 @@ observeEvent(input$plan_handsontable, {
     for (row in 1:nrow(long_data)) {
       material_code <- trimws(long_data$품번[row])
       quantity_to_save <- as.numeric(long_data$quantity[row])
+      quantity_to_save <- ifelse(is.na(quantity_to_save), 0, quantity_to_save)
       
       # Extract date from column name like "D+0\n(11/13)"
       date_str_part <- regmatches(long_data$delivery_date_str[row], regexpr("\\(\\d{2}/\\d{2}\\)", long_data$delivery_date_str[row]))
