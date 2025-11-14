@@ -4,10 +4,7 @@ pipeline {
     agent any
 
     environment {
-        // 배포 서버의 SSH Credential ID를 설정합니다.
-        DEPLOY_SERVER_CREDENTIALS_ID = 'your-deploy-server-credentials'
-        // 배포 서버의 주소와 사용자 이름을 설정합니다.
-        DEPLOY_SERVER = 'user@your-deploy-server.com'
+
     }
 
     stages {
@@ -40,28 +37,23 @@ pipeline {
                     string(credentialsId: 'MSSQL_PWD', variable: 'MSSQL_PWD_VAR')
                 ]) {
                     // SSH를 통해 배포 서버에 접속하여 Docker 컨테이너를 실행합니다.
-                    withCredentials([sshUserPrivateKey(credentialsId: DEPLOY_SERVER_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY')]) {
                         sh """
-                            ssh -o StrictHostKeyChecking=no -i \\
-${SSH_KEY} ${env.DEPLOY_SERVER} << 'EOF'
-                                # 기존 컨테이너가 있으면 중지하고 삭제합니다.
-                                docker stop production-planning-app || true
-                                docker rm production-planning-app || true
+                            # 기존 컨테이너가 있으면 중지하고 삭제합니다.
+                            docker stop production-planning-app || true
+                            docker rm production-planning-app || true
 
 
 
-                                # 환경 변수를 주입하여 새 컨테이너를 실행합니다.
-                                docker run -d --name production-planning-app -p 3838:3838 \
-                                    -e MYSQL_HOST="\\${MYSQL_HOST_VAR}" \
-                                    -e MYSQL_USER="\\${MYSQL_USER_VAR}" \
-                                    -e MYSQL_PWD="\\${MYSQL_PWD_VAR}" \
-                                    -e MSSQL_HOST="\\${MSSQL_HOST_VAR}" \
-                                    -e MSSQL_USER="\\${MSSQL_USER_VAR}" \
-                                    -e MSSQL_PWD="\\${MSSQL_PWD_VAR}" \
-                                    production-planning-app:latest
-                            EOF
+                            # 환경 변수를 주입하여 새 컨테이너를 실행합니다.
+                            docker run -d --name production-planning-app -p 3838:3838 \
+                                -e MYSQL_HOST="${MYSQL_HOST_VAR}" \
+                                -e MYSQL_USER="${MYSQL_USER_VAR}" \
+                                -e MYSQL_PWD="${MYSQL_PWD_VAR}" \
+                                -e MSSQL_HOST="${MSSQL_HOST_VAR}" \
+                                -e MSSQL_USER="${MSSQL_USER_VAR}" \
+                                -e MSSQL_PWD="${MSSQL_PWD_VAR}" \
+                                production-planning-app:latest
                         """
-                    }
                 }
             }
         }
