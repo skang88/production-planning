@@ -16,7 +16,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 // Dockerfile을 사용하여 이미지를 빌드합니다.
-                sh 'docker build -t production-planning-app:latest'
+                sh 'docker build -t production-planning-app:latest .'
             }
         }
 
