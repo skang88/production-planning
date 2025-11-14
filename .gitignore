@@ -1,0 +1,31 @@
+# History files
+.Rhistory
+.Rapp.history
+
+# Session Data files
+.RData
+
+# User-specific files
+.Rproj.user/
+
+# Example code in package build process
+*-Ex.R
+
+# RStudio files
+.rstudio-desktop
+
+# knitr and R markdown temporary files
+*_cache/
+/cache/
+
+# R Environment Variables
+.Renviron
+
+# pkgdown site
+docs/
+
+# R CMD check
+*.Rcheck/
+
+# Shiny token
+rsconnect/
