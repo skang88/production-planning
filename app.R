@@ -42,7 +42,22 @@ ui <- fluidPage(
   
   tabsetPanel(
     id = "main_tabs",
-    tabPanel("납품 계획 입력",
+    tabPanel("종합 납품 계획 입력",
+             fluidRow(
+               column(12,
+                      h4("전체 품번 납품 계획 (EA 단위)"),
+                      p("표에서 직접 수량을 수정하고 '저장' 버튼을 누르세요."),
+                      rHandsontableOutput("aggregated_plan_table"),
+                      fluidRow( # Use fluidRow to contain buttons
+                          column(12, align = "right", # Align both buttons to the right
+                                 actionButton("save_aggregated_plan", "변경사항 저장", class = "btn-success", style = "margin-top: 10px; margin-left: 10px;"), # Add margin-left for spacing
+                                 downloadButton("download_aggregated_plan", "엑셀 다운로드", class = "btn-info", style = "margin-top: 10px;")
+                          )
+                      )
+               )
+             )
+    ),
+    tabPanel("개별 납품 계획 입력",
              fluidRow(
                column(2, # Reduced width from 3 to 2
                       wellPanel(
@@ -57,7 +72,7 @@ ui <- fluidPage(
                         )
                       ),
                       uiOutput("data_timestamps"),
-                      actionButton("auto_fill_all_materials", "모든 품번 대상 납품계획 자동 생성", class = "btn-warning", style = "margin-top: 10px; width: 100%;")
+                      actionButton("auto_fill_all_materials", "모든 품번 대상 납품계획 자동 생성", class = "btn-warning", style = "margin-top: 10px; width = 100%;")
                ),
                column(10, # Expanded width from 9 to 10
                       h4("예상 재고 추이 그래프"),
@@ -72,21 +87,6 @@ ui <- fluidPage(
                       hr(),
                       h4("상세 데이터"),
                       DTOutput("simulation_table") # 데이터 테이블
-               )
-             )
-    ),
-    tabPanel("종합 납품 계획",
-             fluidRow(
-               column(12,
-                      h4("전체 품번 납품 계획 (EA 단위)"),
-                      p("표에서 직접 수량을 수정하고 '저장' 버튼을 누르세요."),
-                      rHandsontableOutput("aggregated_plan_table"),
-                      fluidRow( # Use fluidRow to contain buttons
-                          column(12, align = "right", # Align both buttons to the right
-                                 actionButton("save_aggregated_plan", "변경사항 저장", class = "btn-success", style = "margin-top: 10px; margin-left: 10px;"), # Add margin-left for spacing
-                                 downloadButton("download_aggregated_plan", "엑셀 다운로드", class = "btn-info", style = "margin-top: 10px;")
-                          )
-                      )
                )
              )
     ),
