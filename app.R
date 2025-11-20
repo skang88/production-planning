@@ -1010,8 +1010,15 @@ observeEvent(input$plan_handsontable, {
                   )    # Save to DB
     for (row in 1:nrow(long_data)) {
       material_code <- trimws(long_data$품번[row])
+      
+      # Debugging: Print the raw quantity value
+      print(paste("Raw quantity from long_data:", long_data$quantity[row]))
+      
       quantity_to_save <- as.numeric(long_data$quantity[row])
       quantity_to_save <- ifelse(is.na(quantity_to_save), 0, quantity_to_save)
+      
+      # Debugging: Print the processed quantity value
+      print(paste("Processed quantity_to_save:", quantity_to_save))
       
       # Extract date from column name like "D+0\n(11/13)"
       date_str_part <- regmatches(long_data$delivery_date_str[row], regexpr("\\(\\d{2}/\\d{2}\\)", long_data$delivery_date_str[row]))
